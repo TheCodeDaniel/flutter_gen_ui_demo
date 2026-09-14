@@ -241,7 +241,7 @@ packages:
     source: hosted
     version: "0.2.4"
   genui:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: genui
       sha256: e5a744aa9dfb28326fa397a1e445767e69bf7a5b99bda1e640daf6482f46c37e
@@ -313,7 +313,7 @@ packages:
     source: hosted
     version: "1.0.0"
   json_schema_builder:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: json_schema_builder
       sha256: "657db3229ba10305c48e8686e8b3aca16e12e639c3a7b96687a6eeb7836b6e1b"
@@ -353,7 +353,7 @@ packages:
     source: hosted
     version: "6.1.0"
   logging:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: logging
       sha256: c8245ada5f1717ed44271ed1c26b8ce85ca3228fd2ffdb75468ab01979309d61
