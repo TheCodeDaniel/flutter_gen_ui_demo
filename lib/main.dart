@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gen_ui_demo/features/chat/presentation/chat_home_ui.dart';
 
 Future<void> main() async {
   runApp(MyApp());
@@ -14,6 +15,10 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp();
+    return MaterialApp(
+      theme: ThemeData.light(useMaterial3: false),
+      home: ChatHomeUi(),
+      debugShowCheckedModeBanner: false,
+    );
   }
 }
