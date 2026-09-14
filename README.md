@@ -8,4 +8,4 @@ This project is a starting point for the flutter Gen UI demo Flutter application
 
 ## Author
 
-@ThecodeDaniel/Daniel Ainoko
+@TheCodeDaniel/Daniel Ainoko (2026)
