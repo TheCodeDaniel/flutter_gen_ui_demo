@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:genui/genui.dart';
+import 'package:iconsax/iconsax.dart';
 
 class ChatBubble extends StatelessWidget {
   final String text;
@@ -8,6 +9,10 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChatMessageView(text: text, icon: isUser ? Icons.person : Icons.person_2, alignment: isUser ? .end : .start);
+    return ChatMessageView(
+      text: text,
+      icon: isUser ? Iconsax.profile_circle : Iconsax.support,
+      alignment: isUser ? .end : .start,
+    );
   }
 }

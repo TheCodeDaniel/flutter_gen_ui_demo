@@ -11,11 +11,44 @@ class ChatHomeUi extends StatefulWidget {
 }
 
 class _ChatHomeUiState extends State<ChatHomeUi> {
+  TextEditingController userMessageController = TextEditingController();
+  bool hasMessage = false;
+
+  final scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    userMessageController.addListener(() {
+      if (userMessageController.text.isNotEmpty) {
+        setState(() => hasMessage = true);
+      } else {
+        setState(() => hasMessage = false);
+      }
+    });
+  }
+
   List<ChatModel> chatMessages = [];
+
+  void _sendMessage() {
+    setState(() {});
+    chatMessages.add(ChatModel(isUser: true, text: userMessageController.text));
+    userMessageController.clear();
+    if (chatMessages.length > 2) {
+      if (scrollController.hasClients) {
+        scrollController.animateTo(
+          scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(elevation: 0, centerTitle: true, title: Text("GenUi Example")),
       body: SafeArea(
         child: Padding(
           padding: const .symmetric(horizontal: 16),
@@ -33,7 +66,7 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
                           backgroundColor: Colors.grey.shade200,
                           child: Icon(Iconsax.message, size: 40, color: Colors.black),
                         ),
-                        Text("Write Something in the text field"),
+                        Text("Send. A. Message."),
                       ],
                     ),
                   ),
@@ -41,6 +74,8 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
               else
                 Expanded(
                   child: ListView.separated(
+                    physics: BouncingScrollPhysics(),
+                    controller: scrollController,
                     separatorBuilder: (_, i) => SizedBox(height: 10),
                     itemBuilder: (_, index) {
                       final ChatModel message = chatMessages[index];
@@ -52,6 +87,7 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
                 ),
 
               TextFormField(
+                controller: userMessageController,
                 decoration: InputDecoration(
                   contentPadding: .symmetric(horizontal: 16),
                   filled: true,
@@ -59,9 +95,13 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
                   border: OutlineInputBorder(borderRadius: .circular(26), borderSide: .none),
                   hintText: "Say Hello...",
                   hintStyle: TextStyle(fontSize: 20, height: 0),
-                  suffix: Icon(Iconsax.send_1),
+                  suffix: GestureDetector(
+                    onTap: _sendMessage,
+                    child: hasMessage ? Icon(Iconsax.send_1) : SizedBox.shrink(),
+                  ),
                 ),
               ),
+              SizedBox(height: 10),
             ],
           ),
         ),
