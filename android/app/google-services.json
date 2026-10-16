@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "483128137088",
+    "project_id": "thecode-demo",
+    "storage_bucket": "thecode-demo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:483128137088:android:8550f062356ed8904cdd65",
+        "android_client_info": {
+          "package_name": "com.example.gen_ui_demo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW3rkR5SVsF3IThgZEXqKGx-XlugPYc6w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

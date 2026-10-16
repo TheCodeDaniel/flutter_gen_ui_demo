@@ -20,6 +20,8 @@ dependencies:
 
   # Toasts and Icons for cosmetics
   iconsax: ^0.0.8
+  firebase_core: ^5.0.0
+  firebase_ai: ^5.0.0
 
 dev_dependencies:
   flutter_test:
