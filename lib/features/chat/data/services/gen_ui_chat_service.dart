@@ -1,69 +1,50 @@
 import 'package:firebase_ai/firebase_ai.dart' show ChatSession, Content, FirebaseAI, StartChatExtension;
 import 'package:genui/genui.dart';
 
-// Fast, free-tier friendly Gemini model served through Firebase AI Logic
-const String _geminiModel = 'gemini-3.5-flash-lite';
-
-/// Wires the GenUI pieces (catalog, surface controller, transport, conversation)
-/// to Gemini via Firebase AI Logic.
+/// Everything GenUI needs, in five steps.
 class GenUiChatService {
-  GenUiChatService() {
-    catalog = BasicCatalogItems.asCatalog();
-    controller = SurfaceController(catalogs: [catalog]);
-    transport = A2uiTransportAdapter(onSend: _sendToGemini);
-    conversation = Conversation(controller: controller, transport: transport);
+  // 1. The catalog: the widgets the AI is allowed to build with
+  final Catalog catalog = BasicCatalogItems.asCatalog();
 
-    // The prompt builder teaches the model the A2UI protocol and our widget catalog
-    final promptBuilder = PromptBuilder.chat(
-      catalog: catalog,
-      systemPromptFragments: [
-        'You are a friendly assistant in a GenUI demo app. '
-            'Whenever it helps, answer with rich UI built from the widget catalog '
-            '(cards, lists, rows, buttons, choice pickers, sliders, text fields...) '
-            'instead of plain text. Keep any plain text short.',
-        PromptFragments.acknowledgeUser(),
-        PromptFragments.requireAtLeastOneSubmitElement(prefix: PromptBuilder.defaultImportancePrefix),
-        PromptFragments.uiGenerationRestriction(prefix: PromptBuilder.defaultImportancePrefix),
-        PromptFragments.currentDate(),
-      ],
-    );
+  // 2. The controller: keeps track of every UI the AI generates
+  late final SurfaceController controller = SurfaceController(catalogs: [catalog]);
 
-    _chatSession = FirebaseAI.googleAI()
-        .generativeModel(
-          model: _geminiModel,
-          systemInstruction: Content.system(promptBuilder.systemPromptJoined()),
-        )
-        .startChat();
+  // 3. The transport: sends our messages out, turns the AI's replies into UI
+  late final A2uiTransportAdapter transport = A2uiTransportAdapter(onSend: _sendToGemini);
+
+  // 4. The conversation: ties the controller and transport together
+  late final Conversation conversation = Conversation(controller: controller, transport: transport);
+
+  // 5. Gemini, taught how to "speak GenUI" through the system prompt
+  late final ChatSession gemini = FirebaseAI.googleAI()
+      .generativeModel(model: 'gemini-3.5-flash-lite', systemInstruction: Content.system(_systemPrompt))
+      .startChat();
+
+  // The prompt builder explains our catalog and the GenUI protocol to the AI
+  String get _systemPrompt => PromptBuilder.chat(
+    catalog: catalog,
+    systemPromptFragments: [
+      'You are a friendly assistant. '
+          'Answer with rich UI from the widget catalog whenever it helps. '
+          'Keep plain text short.',
+    ],
+  ).systemPromptJoined();
+
+  /// Sends what the user typed.
+  Future<void> sendMessage(String text) {
+    return conversation.sendRequest(ChatMessage.user(text));
   }
 
-  late final Catalog catalog;
-  late final SurfaceController controller;
-  late final A2uiTransportAdapter transport;
-  late final Conversation conversation;
-
-  // The chat session keeps the history, the transport only hands us the newest message
-  late final ChatSession _chatSession;
-
-  /// Sends a user prompt to the model.
-  Future<void> sendMessage(String text) => conversation.sendRequest(ChatMessage.user(text));
-
-  // Called by the transport for user prompts and for interactions with generated UI
+  // Called for typed messages AND for taps on AI-generated buttons
   Future<void> _sendToGemini(ChatMessage message) async {
-    final buffer = StringBuffer();
-    for (final part in message.parts) {
-      if (part.isUiInteractionPart) {
-        buffer.write(part.asUiInteractionPart!.interaction);
-      } else if (part is TextPart) {
-        buffer.write(part.text);
-      }
-    }
-    if (buffer.isEmpty) return;
+    // Either text the user typed, or a description of what they tapped
+    final String userInput = message.text.isNotEmpty
+        ? message.text
+        : message.parts.uiInteractionParts.first.interaction;
 
-    // Stream the response so text and UI show up as soon as they arrive
-    final responses = _chatSession.sendMessageStream(Content.text(buffer.toString()));
-    await for (final response in responses) {
-      final chunk = response.text;
-      if (chunk != null && chunk.isNotEmpty) transport.addChunk(chunk);
+    // Stream the reply, so text and UI appear while Gemini is still writing
+    await for (final reply in gemini.sendMessageStream(Content.text(userInput))) {
+      transport.addChunk(reply.text ?? '');
     }
   }
 
