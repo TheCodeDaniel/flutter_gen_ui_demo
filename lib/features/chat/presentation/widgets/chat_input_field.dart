@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:gen_ui_demo/core/theme/app_theme.dart';
 import 'package:iconsax/iconsax.dart';
 
+/// Where the user types what they want to cook.
 class ChatInputField extends StatefulWidget {
   final void Function(String text) onSend;
   const ChatInputField({super.key, required this.onSend});
@@ -35,18 +37,32 @@ class _ChatInputFieldState extends State<ChatInputField> {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: userMessageController,
-      onFieldSubmitted: (_) => _send(),
-      textInputAction: TextInputAction.send,
-      decoration: InputDecoration(
-        contentPadding: .symmetric(horizontal: 16),
-        filled: true,
-        fillColor: Colors.grey.shade200,
-        border: OutlineInputBorder(borderRadius: .circular(26), borderSide: .none),
-        hintText: "Say Hello...",
-        hintStyle: TextStyle(fontSize: 20, height: 0),
-        suffix: GestureDetector(onTap: _send, child: hasMessage ? Icon(Iconsax.send_1) : SizedBox.shrink()),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Row(
+        spacing: 8,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: userMessageController,
+              onSubmitted: (_) => _send(),
+              textInputAction: TextInputAction.send,
+              decoration: InputDecoration(
+                hintText: "Tell me what you want to cook...",
+                prefixIcon: Icon(Iconsax.reserve, color: AppColors.muted),
+              ),
+            ),
+          ),
+          // Send button lights up once there's something to send
+          AnimatedContainer(
+            duration: Duration(milliseconds: 200),
+            decoration: BoxDecoration(color: hasMessage ? AppColors.jollof : AppColors.outline, shape: BoxShape.circle),
+            child: IconButton(
+              onPressed: hasMessage ? _send : null,
+              icon: Icon(Iconsax.send_1, color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }

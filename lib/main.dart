@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:gen_ui_demo/core/theme/app_theme.dart';
 import 'package:gen_ui_demo/features/chat/presentation/chat_home_ui.dart';
 import 'package:genui/genui.dart';
 import 'package:gen_ui_demo/firebase_options.dart';
@@ -24,10 +25,6 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(fontFamily: "Poppins", useMaterial3: false),
-      home: ChatHomeUi(),
-      debugShowCheckedModeBanner: false,
-    );
+    return MaterialApp(theme: AppTheme.light, home: ChatHomeUi(), debugShowCheckedModeBanner: false);
   }
 }

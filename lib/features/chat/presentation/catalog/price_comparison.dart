@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gen_ui_demo/core/theme/app_theme.dart';
 import 'package:gen_ui_demo/features/chat/presentation/catalog/format_price.dart';
 import 'package:genui/genui.dart';
 import 'package:iconsax/iconsax.dart';
@@ -83,6 +84,13 @@ class StoreOffer {
     'supermarket' => Iconsax.building,
     _ => Iconsax.global,
   };
+
+  // Each kind of store gets its own colour
+  Color get color => switch (storeType) {
+    'market' => AppColors.jollof,
+    'supermarket' => AppColors.leaf,
+    _ => Colors.blue.shade700,
+  };
 }
 
 // 4. The widget: what the user actually sees
@@ -94,40 +102,78 @@ class PriceComparisonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 0,
-      color: Colors.grey.shade100,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          spacing: 10,
           children: [
-            Text(data.item, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            // Header: the item and how its price is moving
+            Row(
+              spacing: 8,
+              children: [
+                Icon(Iconsax.discount_shape, color: AppColors.jollof),
+                Expanded(
+                  child: Text(data.item, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
             if (data.trend != null)
-              Text("📈 ${data.trend}", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.pepper.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text("📈 ${data.trend}", style: TextStyle(fontSize: 12, color: AppColors.ink)),
+              ),
 
             // Offers, cheapest first
             for (final offer in data.offers)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(offer.icon),
-                title: Text(offer.store),
-                subtitle: offer == data.offers.first
-                    ? Text(
-                        "Best price",
-                        style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold),
-                      )
-                    : Text(offer.storeType),
-                trailing: Text(
-                  formatPrice(data.currencySymbol, offer.price),
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                // Online offers open the store page
-                onTap: offer.url == null ? null : () => launchUrl(Uri.parse(offer.url!)),
-              ),
+              _OfferTile(offer: offer, currencySymbol: data.currencySymbol, isBestPrice: offer == data.offers.first),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _OfferTile extends StatelessWidget {
+  final StoreOffer offer;
+  final String currencySymbol;
+  final bool isBestPrice;
+
+  const _OfferTile({required this.offer, required this.currencySymbol, required this.isBestPrice});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      // The best price stands out in green
+      color: isBestPrice ? AppColors.leaf.withValues(alpha: 0.1) : AppColors.cream,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: isBestPrice ? AppColors.leaf : Colors.transparent),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: offer.color.withValues(alpha: 0.15),
+          child: Icon(offer.icon, color: offer.color, size: 20),
+        ),
+        title: Text(offer.store, style: TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(
+          isBestPrice ? "Best price · ${offer.storeType}" : offer.storeType,
+          style: TextStyle(
+            fontSize: 12,
+            color: isBestPrice ? AppColors.leaf : AppColors.muted,
+            fontWeight: isBestPrice ? FontWeight.bold : null,
+          ),
+        ),
+        trailing: Text(
+          formatPrice(currencySymbol, offer.price),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        // Online offers open the store page
+        onTap: offer.url == null ? null : () => launchUrl(Uri.parse(offer.url!)),
       ),
     );
   }

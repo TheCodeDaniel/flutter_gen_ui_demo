@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gen_ui_demo/core/theme/app_theme.dart';
 import 'package:gen_ui_demo/features/chat/data/models/web_sources.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,16 +16,15 @@ class SearchSources extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: 6,
       children: [
-        Text("Sources", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        Text("Prices checked on", style: TextStyle(fontSize: 12, color: AppColors.muted)),
         Wrap(
           spacing: 6,
           runSpacing: 6,
           children: [
             for (final link in sources.links)
               ActionChip(
-                avatar: Icon(Iconsax.link, size: 16),
+                avatar: Icon(Iconsax.link, size: 16, color: AppColors.jollof),
                 label: Text(link.title, style: TextStyle(fontSize: 12)),
-                backgroundColor: Colors.grey.shade200,
                 onPressed: () => launchUrl(Uri.parse(link.url)),
               ),
           ],

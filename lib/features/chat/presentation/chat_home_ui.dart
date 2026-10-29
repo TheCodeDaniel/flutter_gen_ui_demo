@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:gen_ui_demo/features/chat/data/models/chat_model.dart';
 import 'package:gen_ui_demo/features/chat/data/services/gen_ui_chat_service.dart';
 import 'package:gen_ui_demo/features/chat/data/services/location_service.dart';
+import 'package:gen_ui_demo/features/chat/presentation/widgets/appear_animation.dart';
 import 'package:gen_ui_demo/features/chat/presentation/widgets/chat_bubble.dart';
 import 'package:gen_ui_demo/features/chat/presentation/widgets/chat_input_field.dart';
-import 'package:gen_ui_demo/features/chat/presentation/widgets/empty_chat_view.dart';
+import 'package:gen_ui_demo/features/chat/presentation/widgets/cooking_indicator.dart';
+import 'package:gen_ui_demo/features/chat/presentation/widgets/dish_suggestions.dart';
+import 'package:gen_ui_demo/features/chat/presentation/widgets/kitchen_header.dart';
 import 'package:gen_ui_demo/features/chat/presentation/widgets/search_sources.dart';
 import 'package:genui/genui.dart';
 
@@ -21,6 +24,7 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
 
   List<ChatModel> chatMessages = [];
   String? userCity;
+  bool isLocating = true;
 
   @override
   void initState() {
@@ -35,7 +39,10 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
     LocationService.getUserCity().then((city) {
       if (!mounted) return;
       chatService.userLocation = city;
-      setState(() => userCity = city);
+      setState(() {
+        userCity = city;
+        isLocating = false;
+      });
     });
   }
 
@@ -99,37 +106,28 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        centerTitle: true,
-        title: Column(
-          children: [
-            Text("Market Shopper"),
-            if (userCity != null) Text("📍 $userCity", style: TextStyle(fontSize: 12)),
-          ],
-        ),
-      ),
       body: SafeArea(
-        child: Padding(
-          padding: const .symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              Expanded(
-                child: chatMessages.isEmpty
-                    ? EmptyChatView(onPromptTap: _sendMessage)
-                    : ListView.separated(
-                        physics: BouncingScrollPhysics(),
-                        controller: scrollController,
-                        separatorBuilder: (_, i) => SizedBox(height: 10),
-                        itemCount: chatMessages.length,
-                        itemBuilder: (_, index) => _buildChatItem(chatMessages[index]),
-                      ),
-              ),
-              _buildLoadingIndicator(),
-              ChatInputField(onSend: _sendMessage),
-              SizedBox(height: 10),
-            ],
-          ),
+        child: Column(
+          children: [
+            KitchenHeader(city: userCity, isLocating: isLocating),
+
+            // Dish suggestions first, then the conversation with the chef
+            Expanded(
+              child: chatMessages.isEmpty
+                  ? DishSuggestions(onDishTap: _sendMessage)
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      physics: BouncingScrollPhysics(),
+                      controller: scrollController,
+                      separatorBuilder: (_, i) => SizedBox(height: 14),
+                      itemCount: chatMessages.length,
+                      itemBuilder: (_, index) => AppearAnimation(child: _buildChatItem(chatMessages[index])),
+                    ),
+            ),
+
+            _buildCookingIndicator(),
+            ChatInputField(onSend: _sendMessage),
+          ],
         ),
       ),
     );
@@ -146,17 +144,11 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
     return ChatBubble(isUser: message.isUser, text: message.text);
   }
 
-  // A thin progress bar while the AI is thinking
-  Widget _buildLoadingIndicator() {
+  // The chef shows what she's doing while the AI is working
+  Widget _buildCookingIndicator() {
     return ValueListenableBuilder(
       valueListenable: chatService.conversation.state,
-      builder: (_, state, _) {
-        if (!state.isWaiting) return SizedBox(height: 18);
-        return Padding(
-          padding: const .symmetric(vertical: 8),
-          child: LinearProgressIndicator(minHeight: 2, color: Colors.black, backgroundColor: Colors.grey.shade200),
-        );
-      },
+      builder: (_, state, _) => state.isWaiting ? CookingIndicator() : SizedBox.shrink(),
     );
   }
 }

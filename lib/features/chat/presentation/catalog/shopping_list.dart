@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gen_ui_demo/core/theme/app_theme.dart';
 import 'package:gen_ui_demo/features/chat/presentation/catalog/format_price.dart';
 import 'package:genui/genui.dart';
 import 'package:iconsax/iconsax.dart';
@@ -9,6 +10,7 @@ final _shoppingListSchema = S.object(
   description: 'A shopping list for a dish or basket, with real current prices from web search.',
   properties: {
     'dish': S.string(description: 'What is being cooked or bought, e.g. "Jollof rice".'),
+    'emoji': S.string(description: 'One food emoji for the dish, e.g. "🍛".'),
     'servings': S.integer(description: 'How many people it serves.'),
     'currencySymbol': S.string(description: 'Local currency symbol, e.g. "₦".'),
     'priceNote': S.string(description: 'Where and when the prices are from, e.g. "Lagos markets, Oct 2026".'),
@@ -47,6 +49,7 @@ final shoppingList = CatalogItem(
 // 3. The data class: reads the AI's JSON
 class ShoppingListData {
   final String dish;
+  final String emoji;
   final int? servings;
   final String currencySymbol;
   final String? priceNote;
@@ -54,6 +57,7 @@ class ShoppingListData {
 
   ShoppingListData({
     required this.dish,
+    this.emoji = "🛒",
     this.servings,
     required this.currencySymbol,
     this.priceNote,
@@ -63,6 +67,7 @@ class ShoppingListData {
   factory ShoppingListData.fromJson(Map<String, Object?> json) {
     return ShoppingListData(
       dish: json['dish'] as String,
+      emoji: json['emoji'] as String? ?? "🛒",
       servings: (json['servings'] as num?)?.toInt(),
       currencySymbol: json['currencySymbol'] as String,
       priceNote: json['priceNote'] as String?,
@@ -121,81 +126,109 @@ class _ShoppingListCardState extends State<ShoppingListCard> {
 
   @override
   Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [_buildHeader(), for (int i = 0; i < items.length; i++) _buildItemRow(i), _buildFooter()],
+      ),
+    );
+  }
+
+  // Coloured banner with the dish, servings and where the prices are from
+  Widget _buildHeader() {
     final data = widget.data;
 
-    return Card(
-      elevation: 0,
-      color: Colors.grey.shade100,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.jollof, AppColors.pepper])),
+      child: Row(
+        spacing: 12,
+        children: [
+          Text(data.emoji, style: TextStyle(fontSize: 40)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Iconsax.shopping_cart),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(data.dish, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  data.dish,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-                if (data.servings != null) Text("Serves ${data.servings}"),
+                if (data.servings != null)
+                  Text("Serves ${data.servings} · ${items.length} items", style: TextStyle(color: Colors.white)),
+                if (data.priceNote != null)
+                  Text(data.priceNote!, style: TextStyle(fontSize: 11, color: Colors.white70)),
               ],
             ),
-            if (data.priceNote != null)
-              Text(data.priceNote!, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            Divider(height: 24),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // One row per ingredient, tap to tick it off
-            for (int i = 0; i < items.length; i++)
-              CheckboxListTile(
-                value: boughtItems.contains(i),
-                onChanged: (_) => _toggleBought(i),
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                activeColor: Colors.black,
-                title: Text(
-                  "${items[i].name} · ${items[i].quantity}",
-                  style: TextStyle(decoration: boughtItems.contains(i) ? TextDecoration.lineThrough : null),
-                ),
-                subtitle: items[i].store != null ? Text(items[i].store!) : null,
-                secondary: Text(
-                  formatPrice(data.currencySymbol, items[i].price),
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            Divider(height: 24),
+  // One ingredient, tap to tick it off while shopping
+  Widget _buildItemRow(int index) {
+    final item = items[index];
+    final bool isBought = boughtItems.contains(index);
 
-            // Live total
-            Row(
+    return CheckboxListTile(
+      value: isBought,
+      onChanged: (_) => _toggleBought(index),
+      controlAffinity: ListTileControlAffinity.leading,
+      activeColor: AppColors.leaf,
+      title: Text(
+        item.name,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          decoration: isBought ? TextDecoration.lineThrough : null,
+          color: isBought ? AppColors.muted : AppColors.ink,
+        ),
+      ),
+      subtitle: Text([item.quantity, ?item.store].join(" · "), style: TextStyle(fontSize: 12, color: AppColors.muted)),
+      secondary: Text(
+        formatPrice(widget.data.currencySymbol, item.price),
+        style: TextStyle(fontWeight: FontWeight.bold, color: isBought ? AppColors.muted : AppColors.ink),
+      ),
+    );
+  }
+
+  // Live total + ask the AI for cheaper places to buy
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        spacing: 12,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.leaf.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
               children: [
-                Text("Left to buy", style: TextStyle(fontSize: 16)),
+                Text(
+                  "Left to buy",
+                  style: TextStyle(color: AppColors.leaf, fontWeight: FontWeight.w600),
+                ),
                 Spacer(),
                 Text(
-                  formatPrice(data.currencySymbol, remainingTotal),
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  formatPrice(widget.data.currencySymbol, remainingTotal),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.leaf),
                 ),
               ],
             ),
-            SizedBox(height: 12),
-
-            // Ask the AI for cheaper places to buy
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => widget.onFindCheaper(items.map((item) => item.name).toList()),
-                icon: Icon(Iconsax.discount_shape),
-                label: Text("Find cheaper options"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-                ),
-              ),
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => widget.onFindCheaper(items.map((item) => item.name).toList()),
+              icon: Icon(Iconsax.discount_shape),
+              label: Text("Find cheaper options"),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
