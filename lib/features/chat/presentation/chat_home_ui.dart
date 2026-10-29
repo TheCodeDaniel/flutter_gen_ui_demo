@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gen_ui_demo/features/chat/data/models/chat_model.dart';
 import 'package:gen_ui_demo/features/chat/data/services/gen_ui_chat_service.dart';
+import 'package:gen_ui_demo/features/chat/data/services/location_service.dart';
 import 'package:gen_ui_demo/features/chat/presentation/widgets/chat_bubble.dart';
 import 'package:gen_ui_demo/features/chat/presentation/widgets/chat_input_field.dart';
 import 'package:gen_ui_demo/features/chat/presentation/widgets/empty_chat_view.dart';
+import 'package:gen_ui_demo/features/chat/presentation/widgets/search_sources.dart';
 import 'package:genui/genui.dart';
 
 class ChatHomeUi extends StatefulWidget {
@@ -18,12 +20,23 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
   final scrollController = ScrollController();
 
   List<ChatModel> chatMessages = [];
+  String? userCity;
 
   @override
   void initState() {
     super.initState();
     // Listen to everything the AI sends back
     chatService.conversation.events.listen(_onConversationEvent);
+
+    // Show the web pages the AI used for its prices
+    chatService.sources.listen((sources) => _addToChat(ChatModel.sources(sources)));
+
+    // Find the user's city, so prices match where they live
+    LocationService.getUserCity().then((city) {
+      if (!mounted) return;
+      chatService.userLocation = city;
+      setState(() => userCity = city);
+    });
   }
 
   @override
@@ -86,7 +99,16 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(elevation: 0, centerTitle: true, title: Text("GenUi Example")),
+      appBar: AppBar(
+        elevation: 0,
+        centerTitle: true,
+        title: Column(
+          children: [
+            Text("Market Shopper"),
+            if (userCity != null) Text("📍 $userCity", style: TextStyle(fontSize: 12)),
+          ],
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const .symmetric(horizontal: 16),
@@ -94,7 +116,7 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
             children: [
               Expanded(
                 child: chatMessages.isEmpty
-                    ? EmptyChatView()
+                    ? EmptyChatView(onPromptTap: _sendMessage)
                     : ListView.separated(
                         physics: BouncingScrollPhysics(),
                         controller: scrollController,
@@ -117,6 +139,9 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
     // AI-generated UI is rendered by GenUI's Surface widget
     if (message.isSurface) {
       return Surface(surfaceContext: chatService.controller.contextFor(message.surfaceId!));
+    }
+    if (message.isSources) {
+      return SearchSources(sources: message.sources!);
     }
     return ChatBubble(isUser: message.isUser, text: message.text);
   }
