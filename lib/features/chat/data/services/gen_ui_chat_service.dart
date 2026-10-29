@@ -1,10 +1,24 @@
 import 'dart:async';
 
 import 'package:firebase_ai/firebase_ai.dart'
-    show Candidate, ChatSession, Content, FirebaseAI, StartChatExtension, Tool;
+    show
+        Candidate,
+        ChatSession,
+        Content,
+        FirebaseAI,
+        GenerationConfig,
+        StartChatExtension,
+        ThinkingConfig,
+        ThinkingLevel,
+        Tool;
 import 'package:gen_ui_demo/features/chat/data/models/web_sources.dart';
+import 'package:gen_ui_demo/features/chat/data/services/system_prompt.dart';
 import 'package:gen_ui_demo/features/chat/presentation/catalog/market_catalog.dart';
 import 'package:genui/genui.dart';
+
+// Live Google Search needs billing on the Firebase project.
+// Off = free tier, and the AI labels its prices as estimates.
+const bool useLiveSearch = false;
 
 /// Everything GenUI needs, in six steps.
 class GenUiChatService {
@@ -20,13 +34,17 @@ class GenUiChatService {
   // 4. The conversation: ties the controller and transport together
   late final Conversation conversation = Conversation(controller: controller, transport: transport);
 
-  // 5. Gemini, with Google Search so it can find REAL prices.
+  // 5. Gemini: the lightest free model, with Google Search when it's switched on.
   //    It is created on the first message, so it already knows the user's location.
   late final ChatSession gemini = FirebaseAI.googleAI()
       .generativeModel(
-        model: 'gemini-3.5-flash-lite',
-        tools: [Tool.googleSearch()],
-        systemInstruction: Content.system(_systemPrompt),
+        model: 'gemini-3.1-flash-lite',
+        tools: [if (useLiveSearch) Tool.googleSearch()],
+        // Minimal "thinking": faster replies and fewer tokens used
+        generationConfig: GenerationConfig(thinkingConfig: ThinkingConfig.withThinkingLevel(ThinkingLevel.minimal)),
+        systemInstruction: Content.system(
+          buildSystemPrompt(catalog: catalog, useLiveSearch: useLiveSearch, userLocation: userLocation),
+        ),
       )
       .startChat();
 
@@ -36,33 +54,6 @@ class GenUiChatService {
   // The web pages Gemini used for each reply
   final _sources = StreamController<WebSources>.broadcast();
   Stream<WebSources> get sources => _sources.stream;
-
-  String get _systemPrompt => PromptBuilder.chat(
-    catalog: catalog,
-    systemPromptFragments: [
-      '''
-You are a friendly market shopping assistant for African shoppers.
-The user tells you what they want to cook or buy, and you build them a shopping list.
-
-PRICES:
-- ALWAYS use Google Search to find CURRENT prices in the user's city before quoting any price.
-- NEVER make up prices. If you can't find one, estimate it and say so in the priceNote.
-- Compare open markets, supermarkets and online stores (for example Jumia, Chowdeck, Shoprite).
-- Use the user's local currency, and mention price trends or inflation when the search shows them.
-
-UI:
-- For a recipe or basket, show a ShoppingList with a fitting food emoji.
-- When the user taps "Find cheaper options" (action "findCheaperOptions"), show a PriceComparison for the most expensive items.
-- Keep plain text short and friendly, like a Nigerian aunty who loves to cook.
-- The ShoppingList already has a "Find cheaper options" button, so don't add extra buttons next to it.
-- TextField values must be data bindings like {"path": "/city"}, never plain text like "/city".
-- Give every input its own data path (e.g. the ChoicePicker "/pickedCity", the TextField "/typedCity").
-
-LOCATION:
-${userLocation != null ? 'The user is in $userLocation.' : 'The user\'s location is unknown. Before giving any prices, ask which city they are in using a ChoicePicker of major African cities (Lagos, Abuja, Port Harcourt, Ibadan, Kano, Accra, Nairobi), a TextField for other cities, and a submit Button.'}
-''',
-    ],
-  ).systemPromptJoined();
 
   /// Sends what the user typed.
   Future<void> sendMessage(String text) {
