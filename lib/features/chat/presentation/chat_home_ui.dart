@@ -58,6 +58,12 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
     chatService.sendMessage(text);
   }
 
+  // Clears the chat and starts a fresh conversation with the AI
+  void _startNewDish() {
+    chatService.startNewDish();
+    setState(() => chatMessages.clear());
+  }
+
   void _onConversationEvent(ConversationEvent event) {
     switch (event) {
       // The AI wrote some text
@@ -109,7 +115,11 @@ class _ChatHomeUiState extends State<ChatHomeUi> {
       body: SafeArea(
         child: Column(
           children: [
-            KitchenHeader(city: userCity, isLocating: isLocating),
+            KitchenHeader(
+              city: userCity,
+              isLocating: isLocating,
+              onNewDish: chatMessages.isEmpty ? null : _startNewDish,
+            ),
 
             // Dish suggestions first, then the conversation with the chef
             Expanded(

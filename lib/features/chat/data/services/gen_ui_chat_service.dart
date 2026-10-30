@@ -22,7 +22,7 @@ const bool useLiveSearch = false;
 
 /// Everything GenUI needs, in six steps.
 class GenUiChatService {
-  // 1. The catalog: basic widgets + our ShoppingList and PriceComparison
+  // 1. The catalog: basic widgets + our own cards (shopping list, prices, plan, recipe)
   final Catalog catalog = marketCatalog;
 
   // 2. The controller: keeps track of every UI the AI generates
@@ -36,7 +36,9 @@ class GenUiChatService {
 
   // 5. Gemini: the lightest free model, with Google Search when it's switched on.
   //    It is created on the first message, so it already knows the user's location.
-  late final ChatSession gemini = FirebaseAI.googleAI()
+  late ChatSession gemini = _startGemini();
+
+  ChatSession _startGemini() => FirebaseAI.googleAI()
       .generativeModel(
         model: 'gemini-3.1-flash-lite',
         tools: [if (useLiveSearch) Tool.googleSearch()],
@@ -54,6 +56,11 @@ class GenUiChatService {
   // The web pages Gemini used for each reply
   final _sources = StreamController<WebSources>.broadcast();
   Stream<WebSources> get sources => _sources.stream;
+
+  /// Forgets the conversation so the user can plan a new dish.
+  void startNewDish() {
+    gemini = _startGemini();
+  }
 
   /// Sends what the user typed.
   Future<void> sendMessage(String text) {

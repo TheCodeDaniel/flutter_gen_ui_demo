@@ -1,5 +1,7 @@
 import 'package:gen_ui_demo/features/chat/presentation/catalog/price_comparison.dart';
+import 'package:gen_ui_demo/features/chat/presentation/catalog/recipe_steps.dart';
 import 'package:gen_ui_demo/features/chat/presentation/catalog/shopping_list.dart';
+import 'package:gen_ui_demo/features/chat/presentation/catalog/shopping_plan.dart';
 import 'package:genui/genui.dart';
 
 /// The widgets the AI is allowed to build with.
@@ -23,5 +25,5 @@ final Catalog marketCatalog = BasicCatalogItems.asCatalog()
       // Helper functions (validation, formatting...) our cards handle themselves
       functionsToRemove: BasicFunctions.all,
     )
-    // Our own market widgets
-    .copyWith(newItems: [shoppingList, priceComparison]);
+    // Our own widgets, one for each step of the journey: list -> compare -> plan -> cook
+    .copyWith(newItems: [shoppingList, priceComparison, shoppingPlan, recipeSteps]);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gen_ui_demo/core/theme/app_theme.dart';
 import 'package:gen_ui_demo/features/chat/presentation/catalog/format_price.dart';
+import 'package:gen_ui_demo/features/chat/presentation/catalog/send_to_ai.dart';
 import 'package:genui/genui.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:json_schema_builder/json_schema_builder.dart';
@@ -38,10 +39,10 @@ final shoppingList = CatalogItem(
 
     return ShoppingListCard(
       data: data,
-      // Tell the AI the user wants cheaper options for these items
-      onFindCheaper: (itemNames) => itemContext.dispatchEvent(
-        UserActionEvent(name: 'findCheaperOptions', sourceComponentId: itemContext.id, context: {'items': itemNames}),
-      ),
+      // The user wants to compare stores for these items
+      onFindCheaper: (items) => sendToAi(itemContext, 'findCheaperOptions', {'items': items}),
+      // The user is happy with the list and wants a shopping plan
+      onPlanShopping: (items) => sendToAi(itemContext, 'planShopping', {'items': items}),
     );
   },
 );
@@ -97,9 +98,10 @@ class ShoppingItem {
 // 4. The widget: what the user actually sees
 class ShoppingListCard extends StatefulWidget {
   final ShoppingListData data;
-  final void Function(List<String> itemNames) onFindCheaper;
+  final void Function(List<Map<String, Object?>> items) onFindCheaper;
+  final void Function(List<Map<String, Object?>> items) onPlanShopping;
 
-  const ShoppingListCard({super.key, required this.data, required this.onFindCheaper});
+  const ShoppingListCard({super.key, required this.data, required this.onFindCheaper, required this.onPlanShopping});
 
   @override
   State<ShoppingListCard> createState() => _ShoppingListCardState();
@@ -108,6 +110,9 @@ class ShoppingListCard extends StatefulWidget {
 class _ShoppingListCardState extends State<ShoppingListCard> {
   // Items the user has already bought
   final Set<int> boughtItems = {};
+
+  // Buttons switch off once the user has picked what to do next
+  bool hasChosenNextStep = false;
 
   List<ShoppingItem> get items => widget.data.items;
 
@@ -220,10 +225,20 @@ class _ShoppingListCardState extends State<ShoppingListCard> {
               ],
             ),
           ),
+
+          // What next: compare stores, or go straight to the shopping plan
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => widget.onFindCheaper(items.map((item) => item.name).toList()),
+              onPressed: hasChosenNextStep ? null : () => _nextStep(widget.onPlanShopping),
+              icon: Icon(Iconsax.routing),
+              label: Text("Plan my shopping"),
+            ),
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: hasChosenNextStep ? null : () => _nextStep(widget.onFindCheaper),
               icon: Icon(Iconsax.discount_shape),
               label: Text("Find cheaper options"),
             ),
@@ -231,5 +246,13 @@ class _ShoppingListCardState extends State<ShoppingListCard> {
         ],
       ),
     );
+  }
+
+  void _nextStep(void Function(List<Map<String, Object?>> items) action) {
+    setState(() => hasChosenNextStep = true);
+    action([
+      for (final item in items)
+        {'name': item.name, 'quantity': item.quantity, 'price': item.price, 'store': item.store},
+    ]);
   }
 }

@@ -6,7 +6,11 @@ import 'package:iconsax/iconsax.dart';
 class KitchenHeader extends StatelessWidget {
   final String? city;
   final bool isLocating;
-  const KitchenHeader({super.key, this.city, required this.isLocating});
+
+  // Shown once a conversation has started, to plan another dish
+  final VoidCallback? onNewDish;
+
+  const KitchenHeader({super.key, this.city, required this.isLocating, this.onNewDish});
 
   String get _greeting {
     final hour = DateTime.now().hour;
@@ -26,14 +30,32 @@ class KitchenHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("$_greeting 👋", style: TextStyle(color: AppColors.muted)),
-                Text(
-                  "What are we cooking?",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.ink),
+                // Shrinks a little if needed, so it always fits on one line
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "What are we cooking?",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.ink),
+                  ),
                 ),
               ],
             ),
           ),
-          _LocationPill(city: city, isLocating: isLocating),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            spacing: 6,
+            children: [
+              _LocationPill(city: city, isLocating: isLocating),
+              if (onNewDish != null)
+                TextButton.icon(
+                  onPressed: onNewDish,
+                  icon: Icon(Iconsax.add_circle, size: 18),
+                  label: Text("New dish"),
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                ),
+            ],
+          ),
         ],
       ),
     );
